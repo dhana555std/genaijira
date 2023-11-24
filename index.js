@@ -2,8 +2,9 @@ import axios from "axios";
 import OpenAI from "openai";
 import { promises as fs1 } from "fs";
 import fs from "fs";
+import FormData from "form-data";
 
-const baseUrl = `https://rushi0224.atlassian.net/rest/api/2/issue`;
+const jiraBaseUrl = process.env.JIRA_BASE_URL;
 const authHeader = process.env.BASIC_AUTH;
 const openai = new OpenAI({
   apiKey: "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",
@@ -33,7 +34,8 @@ export const handler = async (event) => {
     `\nTest cases read from the file are as follows:- \n ${fileContent}`
   );
 
-  await createSubTask(projectKey, key);
+  const subTaskDetails = await createSubTask(projectKey, key);
+  await attachTestCasesToSubTask(subTaskDetails.id);
 
   return {
     statusCode: 200,
@@ -47,7 +49,7 @@ async function getJiraStoryMetaData(storyId) {
     "Content-Type": "application/json",
   };
 
-  const response = await axios.get(`${baseUrl}/${storyId}`, { headers });
+  const response = await axios.get(`${jiraBaseUrl}/${storyId}`, { headers });
   console.log(`JIRA metadata response is \n ${JSON.stringify(response.data)}`);
   return response.data;
 }
@@ -79,7 +81,7 @@ async function generateTestCases(description, outputFile) {
 async function createSubTask(projectKey, parentKey) {
   console.log(`Inside the createSubTask method.`);
   console.log(
-    `url is ${baseUrl}, parentKey is ${parentKey} and projectKey is ${projectKey}.`
+    `url is ${jiraBaseUrl}, parentKey is ${parentKey} and projectKey is ${projectKey}.`
   );
   try {
     const subtaskRequestBody = {
@@ -99,7 +101,7 @@ async function createSubTask(projectKey, parentKey) {
       },
     };
 
-    const response = await axios.post(baseUrl, subtaskRequestBody, {
+    const response = await axios.post(jiraBaseUrl, subtaskRequestBody, {
       headers: {
         Authorization: authHeader,
         "Content-Type": "application/json",
@@ -107,7 +109,37 @@ async function createSubTask(projectKey, parentKey) {
     });
 
     console.log("Response:", response.data);
+    return response.data;
   } catch (error) {
     console.error("Error:", error.message);
+  }
+}
+
+async function attachTestCasesToSubTask(taskId) {
+  try {
+    const formData = new FormData();
+    for (const filePath of ["/tmp/testcases.txt"]) {
+      const fileStream = fs.createReadStream(filePath);
+      formData.append("file", fileStream);
+    }
+
+    const authHeader = authHeader;
+
+    const response = await axios.post(
+      `${jiraBaseUrl}/${taskId}/attachments`,
+      formData,
+      {
+        headers: {
+          Authorization: authHeader,
+          "Content-Type": "multipart/form-data",
+          Accept: "application/json",
+          "X-Atlassian-Token": "no-check",
+        },
+      }
+    );
+    console.log(`Response: ${response.status} ${response.statusText}`);
+    console.log(response.data);
+  } catch (error) {
+    console.error(error.message);
   }
 }
