@@ -4,8 +4,7 @@ import { promises as fs1 } from "fs";
 import fs from "fs";
 
 const baseUrl = `https://rushi0224.atlassian.net/rest/api/2/issue`;
-const authHeader =
-  "Basic cnVzaGlrZXNodHVwa2FyNDM4QGdtYWlsLmNvbTpBVEFUVDN4RmZHRjBwWE5WeG9DcHB2NHU1N05yaDk5cDYtODhhUkdwS2I2SlhRUWQ2QUNyRkJtWlVYUklRWmp2T01pem9VN0tpWkk4bkpHajl4eDdiRUd6TFNnVnl2bDFUZWNEVEsyb214Y0xnbGZ4VkNhVTVtcmFBSDU0MTlPbVVNR2Fkemk1VWRKa3hhNUZVa1BrY1hwckdNRG5XdkJlclFqMklNVHVUSDhQeENBTE1mekl5LTQ9NkE3QTk2MUI=";
+const authHeader = process.env.BASIC_AUTH;
 const openai = new OpenAI({
   apiKey: "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",
 });
@@ -91,6 +90,7 @@ async function createSubTask(projectKey, parentKey) {
         parent: {
           key: parentKey,
         },
+        labels: ["Testcases", "GenAi", "Cypress"],
         summary: `TestCases for task with Key ${parentKey}}`,
         description: "Testcases generated for parent task are attached.",
         issuetype: {
