@@ -5,9 +5,12 @@ import fs from "fs";
 import FormData from "form-data";
 
 const jiraBaseUrl = process.env.JIRA_BASE_URL;
-const authHeader = process.env.BASIC_AUTH;
+const authHeader = `Basic ${Buffer.from(
+  `${process.env.JIRA_USER_NAME}:${process.env.JIRA_PASSWORD}`
+).toString("base64")}`;
+
 const openai = new OpenAI({
-  apiKey: "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",
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export const handler = async (event) => {
@@ -25,6 +28,7 @@ export const handler = async (event) => {
 
   console.log(`The key is ${key}.`);
   console.log(`The description is \n ${description}`);
+  console.log(`The projectKey is ${projectKey}.`);
   const outputFile = "/tmp/testcases.txt";
 
   await generateTestCases(description, outputFile);
@@ -122,8 +126,6 @@ async function attachTestCasesToSubTask(taskId) {
       const fileStream = fs.createReadStream(filePath);
       formData.append("file", fileStream);
     }
-
-    const authHeader = authHeader;
 
     const response = await axios.post(
       `${jiraBaseUrl}/${taskId}/attachments`,
